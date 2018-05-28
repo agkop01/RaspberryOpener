@@ -24,22 +24,33 @@ while True:
     print("Accepted connection from ", client_info)
 
     try:
-        data = client_sock.recv(1024)
-        if len(data) == 0: break
-        print("received [%s]" % data)
+        while True:
+            data = client_sock.recv(1024)
+            # if len(data) == 0:
+            #     break
 
-        if data == 'temp':
-            data = ''#str(read_temp()) + '!'
-        elif data == 'lightOn':
-            #GPIO.output(17, False)
-            data = 'light on!'
-        elif data == 'lightOff':
-            #GPIO.output(17, True)
-            data = 'light off!'
-        else:
-            data = 'WTF!'
-        client_sock.send(data)
-        print("sending [%s]" % data)
+            print("received [%s]" % data)
+
+            if data[0:6] == 'login=':
+                dataArr = data[6:].split('&pass=')
+                # if len(dataArr) == 2 and len(dataArr[0]) > 0 and len(dataArr[1]) > 0:
+                #
+                    # Check if user with given password exists in database (for dataArr[0] as login, dataArr[1] as password)
+
+            elif data[0:7] == 'endConn':
+                break
+
+
+            # if data == 'openGate':
+            #     #GPIO.output(17, False)
+            #     data = 'openingGate'
+            # elif data == 'closeGate':
+            #     #GPIO.output(17, True)
+            #     data = 'closingGate'
+            # else:
+            #     data = 'wrongInput'
+            # client_sock.send(data)
+            # print("sending [%s]" % data)
 
     except IOError:
         pass
