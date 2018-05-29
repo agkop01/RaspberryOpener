@@ -1,3 +1,3 @@
-from .bluetooth import BluetoothServiceSingleton
+from bluetooth import BluetoothServiceSingleton
 
 BluetoothServiceSingleton.get_instance()

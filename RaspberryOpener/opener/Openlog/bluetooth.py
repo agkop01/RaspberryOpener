@@ -1,6 +1,6 @@
 from bluetooth import *
 import bluetooth, subprocess
-from .models import User
+# from models import User
 
 
 class BluetoothServiceSingleton:
