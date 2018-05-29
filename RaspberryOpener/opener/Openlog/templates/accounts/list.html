@@ -1,0 +1,14 @@
+{% extends "Base.html" %}
+
+    {% block head %}
+       <title>List of users </title>
+    {% endblock %}
+
+   {% block body %}
+ <p> Registered users:</p>
+    <ul>
+        {% for UserAcc in all_users %}
+        <li><a href=/opener/{{ UserAcc.id }}>{{ UserAcc.first_name }} {{ UserAcc.last_name }}</a> </li>
+        {% endfor %}
+    </ul>
+    {% endblock %}
