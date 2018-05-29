@@ -1,8 +1,14 @@
 {% extends "Base.html" %}
 {% block head %}
-          <title>Home sweet home</title>
+          <title>Profile</title>
 {% endblock %}
 
 {% block body %}
-  <div>You're logged as:</div>
+<div class="container">You're logged as: <p>{{ user.first_name }} {{ user.last_name }}</p>
+    <p>phone: {{ user.phone }}</p>
+    <button type="submit">Edit profile</button></div>
+<button type="submit">Log out</button>
+ <p>
+     <button type="submit">Open</button></p>
+
 {% endblock %}

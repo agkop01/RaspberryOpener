@@ -1,13 +1,12 @@
 {% extends "Base.html" %}
 
     {% block head %}
-       <title>Login</title>
+       <title>Log In</title>
     {% endblock %}
 
    {% block body %}
     <div class="container">
         <p> You can login here:</p>
-        <h3>User</h3>
         <form method="post">
             {% csrf_token %}
             {{ form.as_p }}
