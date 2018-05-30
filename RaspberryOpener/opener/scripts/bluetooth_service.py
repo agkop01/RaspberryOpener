@@ -84,7 +84,8 @@ class BluetoothServiceSingleton:
                             
                             if password_correct:
                                 while True:
-                                    data_received_2 = client_sock.recv(1024)
+                                    data_received_2 = client_sock.recv(1024).decode("utf-8")
+                                    print("received2 [%s]" % data_received_2)
                                     data_to_send_2 = ""
 
                                     if data_received_2 == 'openGate':
@@ -93,14 +94,16 @@ class BluetoothServiceSingleton:
                                     elif data_received_2 == 'closeGate':
                                         self.close_gate()
                                         data_to_send_2 = 'closingGate'
-                                    elif data_received[0:7] == 'endConn':
+                                    elif data_received_2[0:7] == 'endConn':
                                         break
 
                                     self.send_data(client_sock, data_to_send_2)
+                                    print(data_to_send_2)
 
                         else:
                             data_to_send = 'wrongUserData'
                             self.send_data(client_sock, data_to_send)
+                            print("Username and/or password are not accepted")
 
                     elif data_received[0:7] == 'endConn':
                         break
@@ -108,6 +111,7 @@ class BluetoothServiceSingleton:
                     else:
                         data_to_send = 'wrongInput'
                         self.send_data(client_sock, data_to_send)
+                        print("Wrong input")
 
             except IOError:
                 print("IOError")
@@ -132,13 +136,13 @@ class BluetoothServiceSingleton:
         if not self.is_gate_opened:
             # GPIO.output(self.OPENING_PIN, True)
             # GPIO.output(self.CLOSING_PIN, False)
-            pass
+            return
 
     def close_gate(self):
         if not self.is_gate_closed:
             # GPIO.output(self.OPENING_PIN, False)
             # GPIO.output(self.CLOSING_PIN, True)
-            pass
+            return
 
     def is_gate_opened(self):
         # TODO checking opening limit switch
@@ -151,12 +155,12 @@ class BluetoothServiceSingleton:
     def on_gate_opened(self):
         # TODO opening limit switch triggered
         # GPIO.output(self.OPENING_PIN, False)
-        pass
+        return
 
     def on_gate_closed(self):
         # TODO closing limit switch triggered
         # GPIO.output(self.CLOSING_PIN, False)
-        pass
+        return
 
 
 def run():
