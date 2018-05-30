@@ -3,6 +3,8 @@ Web app
 
 ### Configuration on Raspberry
 
+#### Configuring Bluetooth Adapter
+
 ```bash
 lsusb
 sudo bluetoothctl
@@ -11,4 +13,10 @@ sudo bluetoothctl
 [bluetooth]# discoverable on
 [bluetooth]# pairable on
 [bluetooth]# scan on
+```
+
+#### Running Service
+
+```bash
+sudo python3 tempBluetoothFile.py
 ```
