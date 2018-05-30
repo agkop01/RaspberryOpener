@@ -47,10 +47,11 @@ class BluetoothServiceSingleton:
 
             client_sock, client_info = server_sock.accept()
             print("Accepted connection from ", client_info)
+            #client_sock.settimeout(60.0)
 
             try:
                 while True:
-                    data_received = client_sock.recv(1024)
+                    data_received = client_sock.recv(1024).decode("utf-8")
                     print("received [%s]" % data_received)
                     # if len(data_received) == 0:
                     #     break
@@ -107,9 +108,11 @@ class BluetoothServiceSingleton:
                         self.send_data(client_sock, data_to_send)
 
             except IOError:
+                print("IOError")
                 pass
 
             except KeyboardInterrupt:
+                print("KeyboardInterrupt")
 
                 print("disconnected")
 
