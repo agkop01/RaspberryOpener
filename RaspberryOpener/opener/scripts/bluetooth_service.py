@@ -40,6 +40,18 @@ class BluetoothServiceSingleton:
         else:
             BluetoothServiceSingleton.__instance = self
 
+            passkey = "1234" # passkey of the device you want to connect
+
+            # kill any "bluetooth-agent" process that is already running
+            #print("subprocess 1")
+            #subprocess.call("kill -9 `pidof bluetooth-agent`",shell=True)
+            #print("subprocess 2")
+
+            # Start a new "bluetooth-agent" process where XXXX is the passkey
+            #print("subprocess 3")
+            #status = subprocess.call("bluetooth-agent " + passkey + " &",shell=True)
+            #print("subprocess 4")
+
             server_sock = BluetoothSocket(RFCOMM)
             server_sock.bind(("", PORT_ANY))
             server_sock.listen(1)

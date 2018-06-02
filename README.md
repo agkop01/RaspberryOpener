@@ -16,10 +16,10 @@ sudo pip3 install django-extensions
 lsusb
 sudo bluetoothctl
 [bluetooth]# power on
-[bluetooth]# agent on
+[bluetooth]# agent off
+[bluetooth]# agent DisplayOnly
 [bluetooth]# discoverable on
 [bluetooth]# pairable on
-[bluetooth]# scan on
 ```
 
 #### Running Service
