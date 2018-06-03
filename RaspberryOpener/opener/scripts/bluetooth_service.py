@@ -2,8 +2,8 @@ from bluetooth import *
 import bluetooth, subprocess
 import socket
 from django.contrib.auth.models import User
-from threading import Thread
-# from models import User
+from time import sleep
+# TODO -> Uncomment On Raspberry: import RPi.GPIO as GPIO
 
 
 class BluetoothServiceSingleton:
@@ -19,10 +19,11 @@ class BluetoothServiceSingleton:
     SEND_GATE_OPENED = "gateIsOpened"
     SEND_GATE_CLOSED = "gateIsClosed"
 
-    PIN_OPEN_GATE = 16
-    PIN_CLOSE_GATE = 17
-    PIN_IS_GATE_OPENED = 18
-    PIN_IS_GATE_CLOSED = 19
+    PIN_MOTOR_A = 16
+    PIN_MOTOR_B = 18
+    PIN_MOTOR_ENABLE = 22
+    gate_opened = False
+    gate_closed = True
 
     client_sock = None
 
@@ -40,7 +41,11 @@ class BluetoothServiceSingleton:
         else:
             BluetoothServiceSingleton.__instance = self
 
-            passkey = "1234" # passkey of the device you want to connect
+            # TODO -> Uncomment On Raspberry: GPIO.setup(PIN_MOTOR_A, GPIO.OUT)
+            # TODO -> Uncomment On Raspberry: GPIO.setup(PIN_MOTOR_B, GPIO.OUT)
+            # TODO -> Uncomment On Raspberry: GPIO.setup(PIN_MOTOR_ENABLE, GPIO.OUT)
+
+            # passkey = "1234" # passkey of the device you want to connect
 
             # kill any "bluetooth-agent" process that is already running
             #print("subprocess 1")
@@ -69,11 +74,6 @@ class BluetoothServiceSingleton:
 
             self.start_service(server_sock, port)
 
-            thread_on_gate_opened = Thread(target=self.on_gate_opened, args=())
-            thread_on_gate_closed = Thread(target=self.on_gate_closed, args=())
-            thread_on_gate_opened.start()
-            thread_on_gate_closed.start()
-
     def start_service(self, server_sock, port):
         while True:
             print("Waiting for connection on RFCOMM channel %d" % port)
@@ -89,8 +89,6 @@ class BluetoothServiceSingleton:
                     # if len(data_received) == 0:
                     #     break
 
-                    data_to_send = ""
-
                     if data_received[0:6] == 'login=':
                         data_arr = data_received[6:].split('&pass=')
                         if len(data_arr) == 2 and len(data_arr[0]) > 0 and len(data_arr[1]) > 0:
@@ -101,54 +99,53 @@ class BluetoothServiceSingleton:
                                 password_correct = user.check_password(data_arr[1])
                                 if password_correct:
                                     print("Password is correct")
-                                    data_to_send = self.SEND_LOGIN_CORRECT
+                                    self.send_data(self.client_sock, self.SEND_LOGIN_CORRECT)
                                 else:
                                     print("Password is wrong")
-                                    data_to_send = self.SEND_LOGIN_WRONG_PASSWORD
+                                    self.send_data(self.client_sock, self.SEND_LOGIN_WRONG_PASSWORD)
                             except User.DoesNotExist:
                                 # Create a new user. There's no need to set a password
                                 # because only the password from settings.py is checked.
                                 print("Username do not exists")
-                                data_to_send = self.SEND_LOGIN_WRONG_USERNAME
-
-                            self.send_data(self.client_sock, data_to_send)
+                                self.send_data(self.client_sock, self.SEND_LOGIN_WRONG_USERNAME)
                             
                             if password_correct:
                                 while True:
                                     data_received_2 = self.client_sock.recv(1024).decode("utf-8")
                                     print("received2 [%s]" % data_received_2)
-                                    data_to_send_2 = ""
 
                                     if data_received_2 == 'openGate':
-                                        if not self.is_gate_opened:
+                                        if not self.gate_opened:
                                             self.open_gate()
-                                            data_to_send_2 = self.SEND_GATE_OPENING
+                                            self.send_data(self.client_sock, self.SEND_GATE_OPENING)
+                                            sleep(2)
+                                            self.stop_motor()
+                                            self.send_data(self.client_sock, self.SEND_GATE_OPENED)
                                         else:
-                                            data_to_send_2 = self.SEND_GATE_OPENED
+                                            self.send_data(self.client_sock, self.SEND_GATE_OPENED)
                                     elif data_received_2 == 'closeGate':
-                                        if not self.is_gate_closed:
+                                        if not self.gate_closed:
                                             self.close_gate()
-                                            data_to_send_2 = self.SEND_GATE_CLOSING
+                                            self.send_data(self.client_sock, self.SEND_GATE_CLOSING)
+                                            sleep(2)
+                                            self.stop_motor()
+                                            self.send_data(self.client_sock, self.SEND_GATE_CLOSED)
                                         else:
-                                            data_to_send_2 = self.SEND_GATE_CLOSED
+                                            self.send_data(self.client_sock, self.SEND_GATE_CLOSED)
                                     elif data_received_2[0:7] == 'endConn':
                                         break
-
-                                    self.send_data(self.client_sock, data_to_send_2)
-                                    print(data_to_send_2)
+                                    else:
+                                        self.send_data(self.client_sock, "wrongSecondInput")
 
                         else:
-                            data_to_send = self.SEND_LOGIN_WRONG_DATA
-                            self.send_data(self.client_sock, data_to_send)
+                            self.send_data(self.client_sock, self.SEND_LOGIN_WRONG_DATA)
                             print("Username and/or password are not accepted")
 
                     elif data_received[0:7] == 'endConn':
                         break
 
                     else:
-                        data_to_send = 'wrongInput'
-                        self.send_data(self.client_sock, data_to_send)
-                        print("Wrong input")
+                        self.send_data(self.client_sock, "wrongFirstInput")
 
             except IOError:
                 print("IOError")
@@ -171,58 +168,20 @@ class BluetoothServiceSingleton:
         print("Sending [%s]" % data_to_send)
 
     def open_gate(self):
-        # GPIO.output(self.PIN_CLOSE_GATE, False)
-        # GPIO.output(self.PIN_OPEN_GATE, True)
+        # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_A, GPIO.HIGH)
+        # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_B, GPIO.LOW)
+        # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_ENABLE, GPIO.HIGH)
         return
 
     def close_gate(self):
-        # GPIO.output(self.PIN_OPEN_GATE, False)
-        # GPIO.output(self.PIN_CLOSE_GATE, True)
+        # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_A, GPIO.LOW)
+        # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_B, GPIO.HIGH)
+        # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_ENABLE, GPIO.HIGH)
         return
 
-    def is_gate_opened(self):
-        # TODO Checking opening limit switch
-        # return GPIO.input(self.PIN_IS_GATE_OPENED)
-        return False
-
-    def is_gate_closed(self):
-        # TODO checking closing limit switch
-        # return GPIO.input(self.PIN_IS_GATE_CLOSED)
-        return False
-
-    def on_gate_opened(self):
-        while True:
-            # TODO 1. Wait for changing state of opening limit switch from low to high
-            #
-            # GPIO.wait_for_edge(self.PIN_IS_GATE_OPENED, GPIO.RISING)
-            # Opening limit switch triggered
-            #
-            # TODO 2. Code to physically stop opening gate
-            #
-            # GPIO.output(self.PIN_OPEN_GATE, False)
-            #
-            # 3. Sending information about gate opened to device if exists
-            if self.client_sock is not None:
-                data_to_send = self.SEND_GATE_OPENED
-                self.send_data(self.client_sock, data_to_send)
-                print("on_gate_opened - send to device")
-
-    def on_gate_closed(self):
-        while True:
-            # TODO 1. Wait for changing state of closing limit switch from low to high
-            #
-            # GPIO.wait_for_edge(self.PIN_IS_GATE_CLOSED, GPIO.RISING)
-            # Closing limit switch triggered
-            #
-            # TODO 2. Code to physically stop closing gate
-            #
-            # GPIO.output(self.PIN_CLOSE_GATE, False)
-            #
-            # 3. Sending information about gate closed to device if exists
-            if self.client_sock is not None:
-                data_to_send = self.SEND_GATE_CLOSED
-                self.send_data(self.client_sock, data_to_send)
-                print("on_gate_opened - send to device")
+    def stop_motor(self):
+        # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_ENABLE, GPIO.LOW)
+        return
 
 
 def run():
