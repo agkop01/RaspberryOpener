@@ -99,7 +99,12 @@ class BluetoothServiceSingleton:
                                 password_correct = user.check_password(data_arr[1])
                                 if password_correct:
                                     print("Password is correct")
-                                    self.send_data(self.client_sock, self.SEND_LOGIN_CORRECT)
+                                    data_gate_info = ""
+                                    if self.gate_opened:
+                                        data_gate_info = "&" + self.SEND_GATE_OPENED
+                                    if self.gate_closed:
+                                        data_gate_info = "&" + self.SEND_GATE_CLOSED
+                                    self.send_data(self.client_sock, self.SEND_LOGIN_CORRECT + data_gate_info)
                                 else:
                                     print("Password is wrong")
                                     self.send_data(self.client_sock, self.SEND_LOGIN_WRONG_PASSWORD)
@@ -117,18 +122,22 @@ class BluetoothServiceSingleton:
                                     if data_received_2 == 'openGate':
                                         if not self.gate_opened:
                                             self.open_gate()
+                                            self.gate_closed = False
                                             self.send_data(self.client_sock, self.SEND_GATE_OPENING)
                                             sleep(2)
                                             self.stop_motor()
+                                            self.gate_opened = True
                                             self.send_data(self.client_sock, self.SEND_GATE_OPENED)
                                         else:
                                             self.send_data(self.client_sock, self.SEND_GATE_OPENED)
                                     elif data_received_2 == 'closeGate':
                                         if not self.gate_closed:
                                             self.close_gate()
+                                            self.gate_opened = False
                                             self.send_data(self.client_sock, self.SEND_GATE_CLOSING)
                                             sleep(2)
                                             self.stop_motor()
+                                            self.gate_closed = True
                                             self.send_data(self.client_sock, self.SEND_GATE_CLOSED)
                                         else:
                                             self.send_data(self.client_sock, self.SEND_GATE_CLOSED)
