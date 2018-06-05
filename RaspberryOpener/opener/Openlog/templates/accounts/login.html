@@ -6,13 +6,13 @@
 
    {% block body %}
     <div class="container">
-        <p> You can login here:</p>
+        <p style="color:whitesmoke"> You can login here:</p>
         <form method="post">
             {% csrf_token %}
             {{ form.as_p }}
-            <button type="submit"
-                    name="button">Login</button>
+           <div class="tab"><button type="submit" name="button">Login</button></div>
         </form>
+
 
     </div>
     {% endblock %}

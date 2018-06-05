@@ -1,14 +1,21 @@
 {% extends "Base.html" %}
 {% block head %}
-          <title>Profile</title>
+
+   <title>Profile</title>
 {% endblock %}
 
 {% block body %}
-<div class="container">You're logged as: <p>{{ user.first_name }} {{ user.last_name }}</p>
-    <p>phone: {{ user.phone }}</p>
-    <button type="submit">Edit profile</button></div>
-<button type="submit">Log out</button>
- <p>
-     <button type="submit">Open</button></p>
 
+<font face="verdana">
+<div class="container" style="color:whitesmoke">You're logged as:
+    <p>{{ user.first_name }} {{ user.last_name }}<br>phone: {{ user.phone }}</p>
+
+
+<br>
+<button type="button" class="btn btn-success btn-lg">Open</button></font>
+</div>
 {% endblock %}
+
+
+
+

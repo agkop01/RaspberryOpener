@@ -1,29 +1,125 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+.navbar {
+    overflow: hidden;
+    background-color: #333;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.navbar a {
+    float: left;
+    font-size: 16px;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+.dropdown {
+    float: left;
+    overflow: hidden;
+}
+
+.dropdown .dropbtn {
+    font-size: 16px;
+    border: none;
+    outline: none;
+    color: white;
+    padding: 14px 16px;
+    background-color: inherit;
+    font-family: inherit;
+    margin: 0;
+}
+
+.navbar a:hover, .dropdown:hover .dropbtn {
+    background-color: ForestGreen ;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: gray;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+.dropdown-content a {
+    float: none;
+    color: white;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    text-align: left;
+}
+
+.dropdown-content a:hover {
+    background-color: ForestGreen;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+</style>
+
     {% block head %}
     <title>Gate Opener</title>
-    {% endblock %}
+
+{% endblock %}
 
 
+
+<link href="css/bootstrap.css" rel="stylesheet">
 </head>
-<body>
-<ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
-  <li class="nav-item">
-    <a class="nav-link active" id="pills-home-tab" data-toggle="pill" href="/home.html" role="tab" aria-controls="Home" aria-selected="true">Home</a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" id="pills-profile-tab" data-toggle="pill" href="" role="tab" aria-controls="pills-profile" aria-selected="false">Profile</a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" id="pills-contact-tab" data-toggle="pill" href="#pills-contact" role="tab" aria-controls="pills-contact" aria-selected="false">Sign Up</a>
-  </li>
+<div class="navbar">
+  <a href="#home">Home</a>
+  <a href="#" onclick="window.location.href='../register'"#">Sign up</a>
+  <div class="dropdown">
+    <button class="dropbtn" onclick="myFunction()">Profile
+      <i class="fa fa-caret-down"></i>
+    </button>
+    <div class="dropdown-content" id="myDropdown">
+      <a href="#" onclick="window.location.href='../profile/edit'">Edit</a>
+      <a href="#">Delete account</a>
+      <a href="#" onclick="window.location.href='../logout'">Log out</a>
+    </div>
+  </div>
+</div>
 
-</ul>
+
+<body style="background-color:rgb(60, 60, 60);"><font face="verdana" style="color:whitesmoke">
+    <div class="pos-f-t">
+
+
+
+    <script src="js/jquery.js"></script>
+<script src="js/bootstrap.js"></script>
 
     {% block body %}
 
-    {% endblock %}
+    {% endblock %}</font>
+<script>
+/* When the user clicks on the button,
+toggle between hiding and showing the dropdown content */
+function myFunction() {
+    document.getElementById("myDropdown").classList.toggle("show");
+}
+
+// Close the dropdown if the user clicks outside of it
+window.onclick = function(e) {
+  if (!e.target.matches('.dropbtn')) {
+    var myDropdown = document.getElementById("myDropdown");
+      if (myDropdown.classList.contains('show')) {
+        myDropdown.classList.remove('show');
+      }
+  }
+}
+</script>
 </body>
 </html>

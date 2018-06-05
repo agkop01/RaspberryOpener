@@ -5,10 +5,10 @@
     {% endblock %}
 
    {% block body %}
- <p> Registered users:</p>
-    <ul>
+ <p style="color:whitesmoke"> Registered users:</p>
+    <ol>
         {% for UserAcc in all_users %}
-        <li><a href=/opener/{{ UserAcc.id }}>{{ UserAcc.first_name }} {{ UserAcc.last_name }}</a> </li>
+        <li><a href=/opener/{{ UserAcc.id }} style="color:whitesmoke">{{ UserAcc.first_name }} {{ UserAcc.last_name }}</a> </li>
         {% endfor %}
-    </ul>
+    </ol>
     {% endblock %}
