@@ -3,6 +3,7 @@ import bluetooth, subprocess
 import socket
 from django.contrib.auth.models import User
 from time import sleep
+import threading
 # TODO -> Uncomment On Raspberry: import RPi.GPIO as GPIO
 
 
@@ -18,14 +19,18 @@ class BluetoothServiceSingleton:
     SEND_GATE_CLOSING = "closingGate"
     SEND_GATE_OPENED = "gateIsOpened"
     SEND_GATE_CLOSED = "gateIsClosed"
+    SEND_OBSTACLE = "obstacle"
+    SEND_OBSTACLE_REMOVED = "obstacleRemoved"
 
     PIN_MOTOR_A = 16
     PIN_MOTOR_B = 18
     PIN_MOTOR_ENABLE = 22
     gate_opened = False
     gate_closed = True
+    PIN_SENSOR_OBSTACLE = 21
 
     client_sock = None
+    password_correct = False
 
     @staticmethod
     def get_instance():
@@ -44,6 +49,7 @@ class BluetoothServiceSingleton:
             # TODO -> Uncomment On Raspberry: GPIO.setup(PIN_MOTOR_A, GPIO.OUT)
             # TODO -> Uncomment On Raspberry: GPIO.setup(PIN_MOTOR_B, GPIO.OUT)
             # TODO -> Uncomment On Raspberry: GPIO.setup(PIN_MOTOR_ENABLE, GPIO.OUT)
+            # TODO -> Uncomment On Raspberry: GPIO.setup(PIN_SENSOR_OBSTACLE, GPIO.IN)
 
             # passkey = "1234" # passkey of the device you want to connect
 
@@ -74,6 +80,8 @@ class BluetoothServiceSingleton:
 
             self.start_service(server_sock, port)
 
+            threading.Thread(target=self.on_obstacle_removed).start()
+
     def start_service(self, server_sock, port):
         while True:
             print("Waiting for connection on RFCOMM channel %d" % port)
@@ -92,12 +100,12 @@ class BluetoothServiceSingleton:
                     if data_received[0:6] == 'login=':
                         data_arr = data_received[6:].split('&pass=')
                         if len(data_arr) == 2 and len(data_arr[0]) > 0 and len(data_arr[1]) > 0:
-                            password_correct = False
+                            self.password_correct = False
                             try:
                                 user = User.objects.get(username=data_arr[0])
                                 print("Username exists")
-                                password_correct = user.check_password(data_arr[1])
-                                if password_correct:
+                                self.password_correct = user.check_password(data_arr[1])
+                                if self.password_correct:
                                     print("Password is correct")
                                     data_gate_info = ""
                                     if self.gate_opened:
@@ -114,7 +122,7 @@ class BluetoothServiceSingleton:
                                 print("Username do not exists")
                                 self.send_data(self.client_sock, self.SEND_LOGIN_WRONG_USERNAME)
                             
-                            if password_correct:
+                            if self.password_correct:
                                 while True:
                                     data_received_2 = self.client_sock.recv(1024).decode("utf-8")
                                     print("received2 [%s]" % data_received_2)
@@ -132,13 +140,17 @@ class BluetoothServiceSingleton:
                                             self.send_data(self.client_sock, self.SEND_GATE_OPENED)
                                     elif data_received_2 == 'closeGate':
                                         if not self.gate_closed:
-                                            self.close_gate()
-                                            self.gate_opened = False
-                                            self.send_data(self.client_sock, self.SEND_GATE_CLOSING)
-                                            sleep(2)
-                                            self.stop_motor()
-                                            self.gate_closed = True
-                                            self.send_data(self.client_sock, self.SEND_GATE_CLOSED)
+                                            obstacle = False  # TODO -> : GPIO.input(self.PIN_SENSOR_OBSTACLE)
+                                            if not obstacle:
+                                                self.close_gate()
+                                                self.gate_opened = False
+                                                self.send_data(self.client_sock, self.SEND_GATE_CLOSING)
+                                                sleep(2)
+                                                self.stop_motor()
+                                                self.gate_closed = True
+                                                self.send_data(self.client_sock, self.SEND_GATE_CLOSED)
+                                            else:
+                                                self.send_data(self.client_sock, self.SEND_OBSTACLE)
                                         else:
                                             self.send_data(self.client_sock, self.SEND_GATE_CLOSED)
                                     elif data_received_2[0:7] == 'endConn':
@@ -191,6 +203,32 @@ class BluetoothServiceSingleton:
     def stop_motor(self):
         # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_ENABLE, GPIO.LOW)
         return
+
+    def on_obstacle_detected(self):
+        while True:
+            # Wait for changing state of sensor from low to high
+            # TODO -> Uncomment On Raspberry: GPIO.wait_for_edge(self.PIN_SENSOR_OBSTACLE, GPIO.RISING)
+            # Obstacle detected
+            # Sending information that obstacle is detected only if gate is opened
+            if self.client_sock is not None and self.password_correct and self.gate_opened:
+                data_to_send = self.SEND_OBSTACLE
+                self.send_data(self.client_sock, data_to_send)
+                print("on_obstacle_detected - send to device")
+
+    def on_obstacle_removed(self):
+        while True:
+            # Wait for changing state of sensor from high to low
+            # TODO -> Uncomment On Raspberry: GPIO.wait_for_edge(self.PIN_SENSOR_OBSTACLE, GPIO.FALLING)
+            # Obstacle removed
+            # Sending information that obstacle was removed and sending current state
+            if self.client_sock is not None and self.password_correct:
+                data_to_send = self.SEND_OBSTACLE_REMOVED
+                if self.gate_opened:
+                    data_to_send += "&" + self.SEND_GATE_OPENED
+                elif self.gate_closed:
+                    data_to_send += "&" + self.SEND_GATE_CLOSED
+                self.send_data(self.client_sock, data_to_send)
+                print("on_obstacle_removed - send to device")
 
 
 def run():
