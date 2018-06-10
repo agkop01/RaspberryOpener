@@ -80,6 +80,7 @@ class BluetoothServiceSingleton:
 
             self.start_service(server_sock, port)
 
+            threading.Thread(target=self.on_obstacle_detected).start()
             threading.Thread(target=self.on_obstacle_removed).start()
 
     def start_service(self, server_sock, port):
