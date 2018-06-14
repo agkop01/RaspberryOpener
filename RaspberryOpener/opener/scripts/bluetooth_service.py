@@ -149,8 +149,10 @@ class BluetoothServiceSingleton:
                                             self.send_data(self.client_sock, self.SEND_GATE_OPENED)
                                     elif data_received_2 == 'closeGate':
                                         if not self.gate_closed:
-                                            if self.thread_check is None:
-                                                obstacle = False  # TODO -> : self.is_obstacle_present()
+                                            if self.thread_check is None or not self.thread_check.isAlive():
+                                                self.thread_check = None
+                                                self.send_data(self.client_sock, self.SEND_GATE_CLOSING)
+                                                obstacle = self.is_obstacle_present()
                                                 if not obstacle:
                                                     self.close_gate()
                                                     self.gate_opened = False
@@ -259,8 +261,10 @@ class BluetoothServiceSingleton:
                 self.thread_check = None
                 break
 
+    pulse_end = 1  # TODO smth
+
     def is_obstacle_present(self):
-        pulse_end = 1
+        self.pulse_end  # TODO smth = 2
         pulse_start = 1
 
         # TODO -> Uncomment On Raspberry: GPIO.output(self.TRIG, False)
@@ -277,15 +281,17 @@ class BluetoothServiceSingleton:
         # TODO -> Uncomment On Raspberry: while GPIO.input(self.ECHO) == 1:
         # TODO -> Uncomment On Raspberry:     pulse_end = time.time()
 
-        pulse_duration = pulse_end - pulse_start
+        pulse_duration = self.pulse_end - pulse_start  # TODO smth
 
         distance = pulse_duration * 17150
 
         distance = round(distance, 2)
         print("check_distance: " + str(distance))
 
+        self.pulse_end += 1  # TODO smth
+
         if distance < 20:
-            if self.thread_check is None:
+            if self.thread_check is None or not self.thread_check.isAlive():
                 self.thread_check = threading.Thread(target=self.on_obstacle_removed)
                 self.thread_check.start()
             return True
