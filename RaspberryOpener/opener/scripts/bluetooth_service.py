@@ -3,6 +3,7 @@ import bluetooth, subprocess
 import socket
 from django.contrib.auth.models import User
 from time import sleep
+import time
 import threading
 # TODO -> Uncomment On Raspberry: import RPi.GPIO as GPIO
 
@@ -28,9 +29,14 @@ class BluetoothServiceSingleton:
     gate_opened = False
     gate_closed = True
     PIN_SENSOR_OBSTACLE = 21
+    TRIG = 11  # 23 GPIO.setmode(GPIO.BCM)
+    ECHO = 13  # 24 GPIO.setmode(GPIO.BCM)
 
     client_sock = None
     password_correct = False
+    is_checking_distance = False
+    distance = 1000
+    thread_check = None
 
     @staticmethod
     def get_instance():
@@ -46,10 +52,12 @@ class BluetoothServiceSingleton:
         else:
             BluetoothServiceSingleton.__instance = self
 
-            # TODO -> Uncomment On Raspberry: GPIO.setup(PIN_MOTOR_A, GPIO.OUT)
-            # TODO -> Uncomment On Raspberry: GPIO.setup(PIN_MOTOR_B, GPIO.OUT)
-            # TODO -> Uncomment On Raspberry: GPIO.setup(PIN_MOTOR_ENABLE, GPIO.OUT)
-            # TODO -> Uncomment On Raspberry: GPIO.setup(PIN_SENSOR_OBSTACLE, GPIO.IN)
+            # TODO -> Uncomment On Raspberry: GPIO.setup(self.PIN_MOTOR_A, GPIO.OUT)
+            # TODO -> Uncomment On Raspberry: GPIO.setup(self.PIN_MOTOR_B, GPIO.OUT)
+            # TODO -> Uncomment On Raspberry: GPIO.setup(self.PIN_MOTOR_ENABLE, GPIO.OUT)
+            # TODO -> Uncomment On Raspberry: GPIO.setup(self.PIN_SENSOR_OBSTACLE, GPIO.IN)
+            # TODO -> Uncomment On Raspberry: GPIO.setup(self.TRIG, GPIO.OUT)
+            # TODO -> Uncomment On Raspberry: GPIO.setup(self.ECHO, GPIO.IN)
 
             # passkey = "1234" # passkey of the device you want to connect
 
@@ -78,10 +86,10 @@ class BluetoothServiceSingleton:
                               # protocols = [ OBEX_UUID ]
                               )
 
-            self.start_service(server_sock, port)
+            # threading.Thread(target=self.on_obstacle_detected).start()
+            # threading.Thread(target=self.on_obstacle_removed).start()
 
-            threading.Thread(target=self.on_obstacle_detected).start()
-            threading.Thread(target=self.on_obstacle_removed).start()
+            self.start_service(server_sock, port)
 
     def start_service(self, server_sock, port):
         while True:
@@ -141,15 +149,18 @@ class BluetoothServiceSingleton:
                                             self.send_data(self.client_sock, self.SEND_GATE_OPENED)
                                     elif data_received_2 == 'closeGate':
                                         if not self.gate_closed:
-                                            obstacle = False  # TODO -> : GPIO.input(self.PIN_SENSOR_OBSTACLE)
-                                            if not obstacle:
-                                                self.close_gate()
-                                                self.gate_opened = False
-                                                self.send_data(self.client_sock, self.SEND_GATE_CLOSING)
-                                                sleep(2)
-                                                self.stop_motor()
-                                                self.gate_closed = True
-                                                self.send_data(self.client_sock, self.SEND_GATE_CLOSED)
+                                            if self.thread_check is None:
+                                                obstacle = False  # TODO -> : self.is_obstacle_present()
+                                                if not obstacle:
+                                                    self.close_gate()
+                                                    self.gate_opened = False
+                                                    self.send_data(self.client_sock, self.SEND_GATE_CLOSING)
+                                                    sleep(2)
+                                                    self.stop_motor()
+                                                    self.gate_closed = True
+                                                    self.send_data(self.client_sock, self.SEND_GATE_CLOSED)
+                                                else:
+                                                    self.send_data(self.client_sock, self.SEND_OBSTACLE)
                                             else:
                                                 self.send_data(self.client_sock, self.SEND_OBSTACLE)
                                         else:
@@ -190,46 +201,96 @@ class BluetoothServiceSingleton:
         print("Sending [%s]" % data_to_send)
 
     def open_gate(self):
-        # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_A, GPIO.HIGH)
-        # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_B, GPIO.LOW)
-        # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_ENABLE, GPIO.HIGH)
+        # TODO -> Uncomment On Raspberry: GPIO.output(self.PIN_MOTOR_A, GPIO.HIGH)
+        # TODO -> Uncomment On Raspberry: GPIO.output(self.PIN_MOTOR_B, GPIO.LOW)
+        # TODO -> Uncomment On Raspberry: GPIO.output(self.PIN_MOTOR_ENABLE, GPIO.HIGH)
         return
 
     def close_gate(self):
-        # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_A, GPIO.LOW)
-        # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_B, GPIO.HIGH)
-        # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_ENABLE, GPIO.HIGH)
+        # TODO -> Uncomment On Raspberry: GPIO.output(self.PIN_MOTOR_A, GPIO.LOW)
+        # TODO -> Uncomment On Raspberry: GPIO.output(self.PIN_MOTOR_B, GPIO.HIGH)
+        # TODO -> Uncomment On Raspberry: GPIO.output(self.PIN_MOTOR_ENABLE, GPIO.HIGH)
         return
 
     def stop_motor(self):
-        # TODO -> Uncomment On Raspberry: GPIO.output(PIN_MOTOR_ENABLE, GPIO.LOW)
+        # TODO -> Uncomment On Raspberry: GPIO.output(self.PIN_MOTOR_ENABLE, GPIO.LOW)
         return
 
-    def on_obstacle_detected(self):
-        while True:
-            # Wait for changing state of sensor from low to high
-            # TODO -> Uncomment On Raspberry: GPIO.wait_for_edge(self.PIN_SENSOR_OBSTACLE, GPIO.RISING)
-            # Obstacle detected
-            # Sending information that obstacle is detected only if gate is opened
-            if self.client_sock is not None and self.password_correct and self.gate_opened:
-                data_to_send = self.SEND_OBSTACLE
-                self.send_data(self.client_sock, data_to_send)
-                print("on_obstacle_detected - send to device")
+    # def on_obstacle_detected(self):
+    #     while True:
+    #         # Wait for changing state of sensor from low to high
+    #         # TODO -> Uncomment On Raspberry: GPIO.wait_for_edge(self.PIN_SENSOR_OBSTACLE, GPIO.RISING)
+    #         # Obstacle detected
+    #         # Sending information that obstacle is detected only if gate is opened
+    #         if self.client_sock is not None and self.password_correct and self.gate_opened:
+    #             data_to_send = self.SEND_OBSTACLE
+    #             self.send_data(self.client_sock, data_to_send)
+    #             print("on_obstacle_detected - send to device")
+
+    # def on_obstacle_removed(self):
+    #     while True:
+    #         # Wait for changing state of sensor from high to low
+    #         # TODO -> Uncomment On Raspberry: GPIO.wait_for_edge(self.PIN_SENSOR_OBSTACLE, GPIO.FALLING)
+    #         # Obstacle removed
+    #         # Sending information that obstacle was removed and sending current state
+    #         if self.client_sock is not None and self.password_correct:
+    #             data_to_send = self.SEND_OBSTACLE_REMOVED
+    #             if self.gate_opened:
+    #                 data_to_send += "&" + self.SEND_GATE_OPENED
+    #             elif self.gate_closed:
+    #                 data_to_send += "&" + self.SEND_GATE_CLOSED
+    #             self.send_data(self.client_sock, data_to_send)
+    #             print("on_obstacle_removed - send to device")
 
     def on_obstacle_removed(self):
         while True:
-            # Wait for changing state of sensor from high to low
-            # TODO -> Uncomment On Raspberry: GPIO.wait_for_edge(self.PIN_SENSOR_OBSTACLE, GPIO.FALLING)
-            # Obstacle removed
-            # Sending information that obstacle was removed and sending current state
-            if self.client_sock is not None and self.password_correct:
-                data_to_send = self.SEND_OBSTACLE_REMOVED
-                if self.gate_opened:
-                    data_to_send += "&" + self.SEND_GATE_OPENED
-                elif self.gate_closed:
-                    data_to_send += "&" + self.SEND_GATE_CLOSED
-                self.send_data(self.client_sock, data_to_send)
-                print("on_obstacle_removed - send to device")
+            is_obstacle = self.is_obstacle_present()
+            if is_obstacle:
+                continue
+            else:
+                if self.client_sock is not None and self.password_correct:
+                    data_to_send = self.SEND_OBSTACLE_REMOVED
+                    if self.gate_opened:
+                        data_to_send += "&" + self.SEND_GATE_OPENED
+                    elif self.gate_closed:
+                        data_to_send += "&" + self.SEND_GATE_CLOSED
+                    self.send_data(self.client_sock, data_to_send)
+                    print("on_obstacle_removed - send to device")
+                self.thread_check = None
+                break
+
+    def is_obstacle_present(self):
+        pulse_end = 1
+        pulse_start = 1
+
+        # TODO -> Uncomment On Raspberry: GPIO.output(self.TRIG, False)
+        print("check_distance checking...")
+        time.sleep(2)
+
+        # TODO -> Uncomment On Raspberry: GPIO.output(self.TRIG, True)
+        time.sleep(0.00001)
+        # TODO -> Uncomment On Raspberry: GPIO.output(self.TRIG, False)
+
+        # TODO -> Uncomment On Raspberry: while GPIO.input(self.ECHO) == 0:
+        # TODO -> Uncomment On Raspberry:     pulse_start = time.time()
+
+        # TODO -> Uncomment On Raspberry: while GPIO.input(self.ECHO) == 1:
+        # TODO -> Uncomment On Raspberry:     pulse_end = time.time()
+
+        pulse_duration = pulse_end - pulse_start
+
+        distance = pulse_duration * 17150
+
+        distance = round(distance, 2)
+        print("check_distance: " + str(distance))
+
+        if distance < 20:
+            if self.thread_check is None:
+                self.thread_check = threading.Thread(target=self.on_obstacle_removed)
+                self.thread_check.start()
+            return True
+        else:
+            return False
 
 
 def run():
